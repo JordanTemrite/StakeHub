@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>StakeHub BETA - LIMITED ACCESS</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src='node_modules/web3/dist/web3.min.js'></script>
+</head>
+
+<body style="background-color:black;">
+
+<h1 style="color:white">StakeHub BETA - LIMITED ACCESS - NOT A MARKET RELEASE</h1>
+
+<table style="color:white">
+    <tr><td>Total StakeHub Supply: </td><td id="totalSupply"></td></tr>
+    <tr><td>Total STKHB Staked: </td><td id="totalStaked"></td></tr>
+    <tr><td>Total STKHB Rewards Pending Payout: </td><td id="totalRewards"></td></tr>
+    <tr><td>Your STKHB Staked: </td><td id="stakeOf"></td></tr>
+    <tr><td>Your STKHB Rewards Pending Payout: </td><td id="rewardOf"></td></tr>
+    <tr><td>Your STKHB Rewards Pending Stake Period End: </td><td id="calculateReward"></td></tr>
+</table>
+<button onclick="withdrawReward();">Withdraw Rewards</button>
+<button onclick="distributeRewards();">Distribute Rewards - (OwnerOnly)</button>
+<br>
+<label style="color:white" for="stake" class="col-lg-2 control-label">New Stake Amount</label>
+<input id="stake" type="text">
+<button onclick="createStake();">Add STKHB</button>
+<br>
+<label style="color:white" for="removeStake" class="col-lg-2 control-label">New Stake Amount</label>
+<input id="removeStake" type="text">
+<button onclick="removeStake();">Remove STKHB</button>
+<br>
+<button onclick="processPayouts();">AutoPayout Test - (OwnerOnly)</button>
+
+
+
+<script type="text/javascript">
+    async function loadWeb3() {
+        if (window.ethereum) {
+            window.web3 = new Web3(window.ethereum);
+            window.ethereum.enable();
+        }
+    }
+
+    async function loadContract() {
+        return await new window.web3.eth.Contract([
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_stakeholder",
+                        "type": "address"
+                    }
+                ],
+                "name": "addStakeholder",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "approve",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_stake",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "createStake",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [],
+                "name": "distributeRewards",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_stake",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "removeStake",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_owner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "_supply",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Approval",
+                "type": "event"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "subtractedValue",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "decreaseAllowance",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "addedValue",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "increaseAllowance",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "previousOwner",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "newOwner",
+                        "type": "address"
+                    }
+                ],
+                "name": "OwnershipTransferred",
+                "type": "event"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_stakeholder",
+                        "type": "address"
+                    }
+                ],
+                "name": "removeStakeholder",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [],
+                "name": "renounceOwnership",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "from",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Transfer",
+                "type": "event"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "sender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transferFrom",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "newOwner",
+                        "type": "address"
+                    }
+                ],
+                "name": "transferOwnership",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [],
+                "name": "withdrawReward",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    }
+                ],
+                "name": "allowance",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "account",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_stakeholder",
+                        "type": "address"
+                    }
+                ],
+                "name": "calculateReward",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [
+                    {
+                        "internalType": "uint8",
+                        "name": "",
+                        "type": "uint8"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "isOwner",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_address",
+                        "type": "address"
+                    }
+                ],
+                "name": "isStakeholder",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "name",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_stakeholder",
+                        "type": "address"
+                    }
+                ],
+                "name": "rewardOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_stakeholder",
+                        "type": "address"
+                    }
+                ],
+                "name": "stakeOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalRewards",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalStakes",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ], '0x82DFA95c55197BCD37457E5dA369d5bE3D8b58f4');
+    }
+
+    async function printTotalSupply() {
+        updateTotalSupply('fetching Total Supply...');
+        const totalSupply = await window.contract.methods.totalSupply().call();
+        updateTotalSupply(`${totalSupply}`);
+    }
+
+    async function withdrawReward() {
+        const accounts = await getCurrentAccount();
+        window.contract.methods.withdrawReward().send({ from: accounts });
+    }
+
+    async function distributeRewards() {
+        const accounts = await getCurrentAccount();
+        window.contract.methods.distributeRewards().send({ from: accounts });
+    }
+
+    async function getCurrentAccount() {
+        const accounts = await window.web3.eth.getAccounts();
+        return accounts[0];
+    }
+
+    async function createStake() {
+        const accounts = await getCurrentAccount();
+        const createStake = $('#stake').val();
+        window.contract.methods.createStake(createStake).send({ from: accounts });
+    }
+
+    async function removeStake() {
+        const accounts = await getCurrentAccount();
+        const removeStake = $('#removeStake').val();
+        window.contract.methods.removeStake(removeStake).send({ from: accounts });
+    }
+
+    async function load() {
+        await loadWeb3();
+        window.contract = await loadContract();
+        printTotalSupply();
+        printTotalStaked();
+        printTotalRewards();
+        printStakeOf();
+        printRewardOf();
+        printCalculateReward();
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function processPayouts() {
+        console.log('Initiating Payouts');
+        await sleep(60000);
+        distributeRewards();
+        processPayouts();
+    }
+
+    async function printCalculateReward() {
+        const accounts = await getCurrentAccount();
+        updateCalculateReward('fetching Your Rewards Pending...');
+        const calculateReward = await window.contract.methods.calculateReward(accounts).call();
+        updateCalculateReward(`${calculateReward}`);
+    }
+
+    function updateCalculateReward(calculateReward) {
+        const calculateRewardEl = document.getElementById('calculateReward');
+        calculateRewardEl.innerHTML = calculateReward;
+        console.log(calculateReward);
+    }
+
+    async function printRewardOf() {
+        const accounts = await getCurrentAccount();
+        updateRewardOf('fetching Your Total Rewards...');
+        const rewardOf = await window.contract.methods.rewardOf(accounts).call();
+        updateRewardOf(`${rewardOf}`);
+    }
+
+    function updateRewardOf(rewardOf) {
+        const rewardOfEl = document.getElementById('rewardOf');
+        rewardOfEl.innerHTML = rewardOf;
+        console.log(rewardOf);
+    }
+
+    async function printStakeOf() {
+        const accounts = await getCurrentAccount();
+        updateStakeOf('fetching Your Amount Staked...');
+        const stakeOf = await window.contract.methods.stakeOf(accounts).call();
+        updateStakeOf(`${stakeOf}`);
+    }
+
+    function updateStakeOf(stakeOf) {
+        const stakeOfEl = document.getElementById('stakeOf');
+        stakeOfEl.innerHTML = stakeOf;
+        console.log(stakeOf);
+    }
+
+    function updateTotalSupply(totalSupply) {
+        const totalSupplyEl = document.getElementById('totalSupply');
+        totalSupplyEl.innerHTML = totalSupply;
+        console.log(totalSupply);
+    }
+
+    async function printTotalStaked() {
+        updateTotalStaked('fetching Total Amount Staked...');
+        const totalStaked = await window.contract.methods.totalStakes().call();
+        updateTotalStaked(`${totalStaked}`);
+    }
+
+    function updateTotalStaked(totalStaked) {
+        const totalStakedEl = document.getElementById('totalStaked');
+        totalStakedEl.innerHTML = totalStaked;
+        console.log(totalStaked);
+    }
+
+    async function printTotalRewards() {
+        updateTotalRewards('fetching Total Network Rewards...');
+        const totalRewards = await window.contract.methods.totalRewards().call();
+        updateTotalRewards(`${totalRewards}`);
+    }
+
+    function updateTotalRewards(totalRewards) {
+        const totalRewardsEl = document.getElementById('totalRewards');
+        totalRewardsEl.innerHTML = totalRewards;
+        console.log(totalRewards);
+    }
+
+    load();
+</script>
+</body>
+
+</html>
