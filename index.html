@@ -669,6 +669,20 @@
         printStakeOf();
         printRewardOf();
         printCalculateReward();
+        printBalanceOf();
+    }
+    
+    async function printBalanceOf() {
+        const accounts = await getCurrentAccount();
+        updateBalanceOf('fetching Your Available Balance ...');
+        const balanceOf = await window.contract.methods.balanceOf(accounts).call();
+        updateBalanceOf(`${balanceOf}`);
+    }
+
+    function updateBalanceOf(balanceOf) {
+        const balanceOfEl = document.getElementById('balanceOf');
+        balanceOfEl.innerHTML = balanceOf;
+        console.log(balanceOf);
     }
 
     async function printCalculateReward() {
