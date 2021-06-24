@@ -1230,7 +1230,7 @@ contract StakeHubToken is ERC20, Ownable {
         _;
     }
     
-    // ---------- VOTING TO CHANGE APY ----------
+    // ---------- VOTING THAT BURNS STKHB ----------
     //For all functions below STKHB will be permanently burned
     function setVotingPeriod() public onlyOwner {
         votingBlockEnd = block.timestamp + 30 days;
