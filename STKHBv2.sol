@@ -1019,8 +1019,13 @@ contract StakeHubToken is ERC20, Ownable {
     using SafeERC20 for IERC20;
     
                                 
-    uint256 public rewardRate = 2.85544 * 1e8;
+    uint256 public rewardRate;
     uint256 public rewardBlockTime = 30 seconds;
+    
+    uint256 public votingBlockEnd;
+    uint256 public yesVoteAmount;
+    uint256 public noVoteAmount;
+    uint256 public minimumVoteAmount;
     
     address[] internal stakeholders;
 
@@ -1047,10 +1052,12 @@ contract StakeHubToken is ERC20, Ownable {
         onlyStakeholder(_stakeMaker)
         public
     {
+            uint256 _stakedAmount;
             if(stakes[msg.sender] > 0) collectRewards(_stakeMaker);
             _burn(msg.sender, _stake);
+            _stakedAmount = _stake - (((_stake * 1e5) - ((_stake*1e5) * (.995 * 1e5) / 1e5)) / 1e5);
             if(stakes[msg.sender] == 0) addStakeholder(msg.sender);
-            stakes[msg.sender] = stakes[msg.sender].add(_stake);
+            stakes[msg.sender] = stakes[msg.sender].add(_stakedAmount);
             stakeStart[_stakeMaker] = block.timestamp;
     }
 
@@ -1099,6 +1106,10 @@ contract StakeHubToken is ERC20, Ownable {
         return _totalStakes;
     }
     
+    /**
+     * @notice A method to the aggregated rewards from all stakeholders.
+     * @return uint256 The aggregated rewards from all stakeholders.
+     */
     function totalRewards()
         public
         view
@@ -1201,10 +1212,56 @@ contract StakeHubToken is ERC20, Ownable {
             _mint(msg.sender, reward);
         }
     }
-
+    
+    /**
+     * @notice A method to change the APY of the contract
+     * @param _rewardRate uint256 that defines the apy as calcualted by (_rewardRate *1e3 *2880 *365) = APY
+     */
+    function setRewardRate(uint256 _rewardRate) public onlyOwner returns (uint256) {
+        for (uint256 s = 0; s < stakeholders.length; s += 1){
+            collectRewards(stakeholders[s]);
+        }
+        return rewardRate = _rewardRate * 1e3;
+    }
+    
+    
     modifier onlyStakeholder(address _stakeholder) {
         require(msg.sender == _stakeholder);
         _;
     }
     
+    // ---------- VOTING TO CHANGE APY ----------
+    //For all functions below STKHB will be permanently burned
+    function setVotingPeriod() public onlyOwner {
+        votingBlockEnd = block.timestamp + 30 days;
+        yesVoteAmount = 0;
+        noVoteAmount = 0;
+    }
+     
+    function voteYes(uint256 _voteAmount) public inBlockperiod(votingBlockEnd) checkVoteAmount(_voteAmount) returns(uint256) {
+        uint256 voteAmount = _voteAmount;
+        _burn(msg.sender, voteAmount);
+        return yesVoteAmount = yesVoteAmount + voteAmount;
+    }
+     
+    function voteNo(uint256 _voteAmount) public inBlockperiod(votingBlockEnd) checkVoteAmount(_voteAmount) returns(uint256) {
+        uint256 voteAmount = _voteAmount;
+        _burn(msg.sender, voteAmount);
+        return noVoteAmount = noVoteAmount + voteAmount;
+    }
+    
+    function setMinimumVoteAmount(uint256 _setVoteAmount) public onlyOwner {
+        minimumVoteAmount = _setVoteAmount * 1e18;
+    }
+    
+    modifier inBlockperiod(uint256 _votingBlockEnd) {
+        _votingBlockEnd = votingBlockEnd;
+        require(block.timestamp < votingBlockEnd);
+        _;
+    }
+    
+    modifier checkVoteAmount(uint256 _voteAmount) {
+        require(_voteAmount >= (minimumVoteAmount));
+        _;
+    }
 }
