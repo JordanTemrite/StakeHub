@@ -1018,10 +1018,16 @@ contract StakeHubToken is ERC20, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     
-                                
+    // uint256 for rewards //                            
     uint256 public rewardRate;
     uint256 public rewardBlockTime = 30 seconds;
     
+    //uint256 for nonburn voting //
+    uint256 public nonburnYesVoteAmount;
+    uint256 public nonburnNoVoteAmount;
+    uint256 public nonburnVotingBlockEnd;
+    
+    //uuint256 for burn voting //
     uint256 public votingBlockEnd;
     uint256 public yesVoteAmount;
     uint256 public noVoteAmount;
@@ -1034,6 +1040,8 @@ contract StakeHubToken is ERC20, Ownable {
     mapping(address => uint256) internal rewards;
     
     mapping (address => uint256) internal stakeStart;
+    
+    mapping (address => uint256) internal voterStatus;
 
     constructor(address _owner, uint256 _supply) 
         public ERC20 ("stakehub.finance", "STKHB")
@@ -1195,7 +1203,6 @@ contract StakeHubToken is ERC20, Ownable {
         return newRewards;    
     }
     
-
     /**
      * @notice A method to attribute and distrbute rewards
      * @param _stakeholder The stakeholder to attribute rewards to.
@@ -1232,36 +1239,112 @@ contract StakeHubToken is ERC20, Ownable {
     
     // ---------- VOTING THAT BURNS STKHB ----------
     //For all functions below STKHB will be permanently burned
-    function setVotingPeriod() public onlyOwner {
-        votingBlockEnd = block.timestamp + 30 days;
+    
+    /**
+     * @notice A method to start a voting period for burnable votes & reset previous vote tallys
+     */
+    function setVotingPeriod(uint256 _time) public onlyOwner {
+        votingBlockEnd = block.timestamp + _time;
         yesVoteAmount = 0;
         noVoteAmount = 0;
     }
      
-    function voteYes(uint256 _voteAmount) public inBlockperiod(votingBlockEnd) checkVoteAmount(_voteAmount) returns(uint256) {
+    /**
+     * @notice A method to vote yes and burn the amount voted
+     * @param _voteAmount Defines the number of tokens to burn
+     */ 
+    function voteYes(uint256 _voteAmount) public inBlockperiod() checkVoteAmount(_voteAmount) returns(uint256) {
         uint256 voteAmount = _voteAmount;
         _burn(msg.sender, voteAmount);
         return yesVoteAmount = yesVoteAmount + voteAmount;
     }
      
-    function voteNo(uint256 _voteAmount) public inBlockperiod(votingBlockEnd) checkVoteAmount(_voteAmount) returns(uint256) {
+    /**
+     * @notice A method to vote no and burn the amount voted
+     * @param _voteAmount Defines the number of tokens to burn
+     */ 
+    function voteNo(uint256 _voteAmount) public inBlockperiod() checkVoteAmount(_voteAmount) returns(uint256) {
         uint256 voteAmount = _voteAmount;
         _burn(msg.sender, voteAmount);
         return noVoteAmount = noVoteAmount + voteAmount;
     }
     
+    /**
+     * @notice A method to set the minimum number of tokens allowed to participate in a vote
+     * @param _setVoteAmount Defines the minimum number of tokens allowed
+     */  
     function setMinimumVoteAmount(uint256 _setVoteAmount) public onlyOwner {
         minimumVoteAmount = _setVoteAmount * 1e18;
     }
     
-    modifier inBlockperiod(uint256 _votingBlockEnd) {
-        _votingBlockEnd = votingBlockEnd;
+    /**
+     * @notice A method to only allow vote submission during the alloted voting time
+     */ 
+    modifier inBlockperiod() {
         require(block.timestamp < votingBlockEnd);
         _;
     }
     
+    /**
+     * @notice A method to only allow vote amounts to meet or exceed the minimum vote amount
+     */ 
     modifier checkVoteAmount(uint256 _voteAmount) {
         require(_voteAmount >= (minimumVoteAmount));
+        _;
+    }
+    
+    
+    // ---------- VOTING THAT DOES NOT BURN STKHB ----------
+    //For all functions below STKHB will be permanently burned\
+    
+    /**
+     * @notice A method to start a voting period for non burable votes - Resets previous vote blockers and resets preivous vote amounts
+     * @param _time Defines the amount of time (in seconds) that the vote will be open
+     */ 
+    function setNonBurnVotingPeriod(uint256 _time) public onlyOwner {
+        nonburnVotingBlockEnd = block.timestamp + _time;
+        for (uint256 s = 0; s < stakeholders.length; s += 1){
+            voterStatus[stakeholders[s]] = 0; 
+        }
+        nonburnYesVoteAmount = 0;
+        nonburnNoVoteAmount = 0;
+    }
+    
+    /**
+     * @notice A method to vote yes based on your total stakeholdings
+     * @param _stakeholder Defines the address submitting the vote
+     */ 
+    function nonburnVoteYes(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) inNonburnBlockperiod {
+        uint256 _nonburnVoteYesAmount;
+        _nonburnVoteYesAmount = stakeOf(_stakeholder);
+        nonburnYesVoteAmount = nonburnYesVoteAmount + _nonburnVoteYesAmount;
+        voterStatus[msg.sender] = 1;
+    }
+    
+    /**
+     * @notice A method to vote no based on your total stakeholdings
+     * @param _stakeholder Defines the address submitting the vote
+     */ 
+    function nonburnVoteNo(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) inNonburnBlockperiod() {
+        uint256 _nonburnVoteNoAmount;
+        _nonburnVoteNoAmount = stakeOf(_stakeholder);
+        nonburnNoVoteAmount = nonburnNoVoteAmount + _nonburnVoteNoAmount;
+        voterStatus[msg.sender] = 1;
+    }
+    
+    /**
+     * @notice A method to only allow voting during the defined block period
+     */ 
+    modifier inNonburnBlockperiod() {
+        require(block.timestamp < nonburnVotingBlockEnd);
+        _;
+    }
+    
+    /**
+     * @notice A method to only allow an address to vote once
+     */ 
+    modifier checkVoteStatus() {
+        require(voterStatus[msg.sender] != 1);
         _;
     }
 }
