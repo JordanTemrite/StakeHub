@@ -1020,7 +1020,7 @@ contract StakeHubToken is ERC20, Ownable {
     
     // uint256 for rewards //                            
     uint256 public rewardRate;
-    uint256 public rewardBlockTime = 30 seconds;
+    uint256 public rewardBlockTime;
     
     //uint256 for nonburn voting //
     uint256 public nonburnYesVoteAmount;
@@ -1229,6 +1229,10 @@ contract StakeHubToken is ERC20, Ownable {
             collectRewards(stakeholders[s]);
         }
         return rewardRate = _rewardRate * 1e3;
+    }
+    
+    function setRewardBlockTime(uint256 _time) public onlyOwner returns (uint256) {
+        return rewardBlockTime = _time;
     }
     
     
