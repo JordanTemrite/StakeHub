@@ -1236,6 +1236,11 @@ contract StakeHubToken is ERC20, Ownable {
     }
     
     
+    modifier onlyCurrentStaker(address _stakeholder) {
+        require(stakeOf(msg.sender) != 0);
+        _;
+    }
+    
     modifier onlyStakeholder(address _stakeholder) {
         require(msg.sender == _stakeholder);
         _;
@@ -1318,7 +1323,7 @@ contract StakeHubToken is ERC20, Ownable {
      * @notice A method to vote yes based on your total stakeholdings
      * @param _stakeholder Defines the address submitting the vote
      */ 
-    function nonburnVoteYes(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) inNonburnBlockperiod {
+    function nonburnVoteYes(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) onlyCurrentStaker(_stakeholder) inNonburnBlockperiod {
         uint256 _nonburnVoteYesAmount;
         _nonburnVoteYesAmount = stakeOf(_stakeholder);
         nonburnYesVoteAmount = nonburnYesVoteAmount + _nonburnVoteYesAmount;
@@ -1329,7 +1334,7 @@ contract StakeHubToken is ERC20, Ownable {
      * @notice A method to vote no based on your total stakeholdings
      * @param _stakeholder Defines the address submitting the vote
      */ 
-    function nonburnVoteNo(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) inNonburnBlockperiod() {
+    function nonburnVoteNo(address _stakeholder) public checkVoteStatus() onlyStakeholder(_stakeholder) onlyCurrentStaker(_stakeholder) inNonburnBlockperiod() {
         uint256 _nonburnVoteNoAmount;
         _nonburnVoteNoAmount = stakeOf(_stakeholder);
         nonburnNoVoteAmount = nonburnNoVoteAmount + _nonburnVoteNoAmount;
