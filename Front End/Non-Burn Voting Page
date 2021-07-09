@@ -812,12 +812,6 @@ async function loadContract() {
         const accounts = await getCurrentAccount();
         window.contract.methods.nonburnVoteNo(accounts).send({ from: accounts });
     }
-    
-    async function setNonBurnVotingPeriod() {
-        const accounts = await getCurrentAccount();
-        const nonburnVotingPeriod = $('#nonburnVotingPeriod').val();
-        window.contract.methods.setNonBurnVotingPeriod(nonburnVotingPeriod).send({ from: accounts });
-    }
 
     async function load() {
     await loadWeb3();
