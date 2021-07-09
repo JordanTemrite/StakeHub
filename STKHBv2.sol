@@ -1060,6 +1060,7 @@ contract StakeHubToken is ERC20, Ownable {
         onlyStakeholder(_stakeMaker)
         public
     {
+            _stake = _stake * 1e18;
             uint256 _stakedAmount;
             if(stakes[msg.sender] > 0) collectRewards(_stakeMaker);
             _burn(msg.sender, _stake);
@@ -1078,6 +1079,7 @@ contract StakeHubToken is ERC20, Ownable {
         onlyStakeholder(_stakeholder)
         public
     {
+        _stake = _stake * 1e18;
         collectRewards(_stakeholder);
         stakes[msg.sender] = stakes[msg.sender].sub(_stake);
         if(stakes[msg.sender] == 0) removeStakeholder(msg.sender);
