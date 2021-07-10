@@ -6,6 +6,30 @@
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 <script>
 
+async function printConnectedAccount() {
+        const accounts = await getCurrentAccount();
+        updateConnectedAccount('Wallet Locked');
+        const connectedAccount = " with account " + await getCurrentAccount();
+        updateConnectedAccount(connectedAccount);
+    }
+    function updateConnectedAccount(connectedAccount) {
+        const connectedAccountEl = document.getElementById('connectedAccount');
+        connectedAccountEl.innerHTML = connectedAccount;
+        console.log(connectedAccount);
+    }
+    async function printConnectedChain() {
+        const chainId = await window.web3.eth.getChainId();
+        const chainData = evmChains.getChain(chainId).name;
+        updateConnectedChain('Wallet Locked');
+        const connectedChain = " Connected to " + chainData;
+        updateConnectedChain(connectedChain);
+    }
+    function updateConnectedChain(connectedChain) {
+        const connectedChainEl = document.getElementById('connectedChain');
+        connectedChainEl.innerHTML = connectedChain;
+        console.log(connectedChain);
+    }
+
 async function loadWeb3() {
         if (window.ethereum) {
             window.web3 = new Web3(window.ethereum);
@@ -868,22 +892,24 @@ async function loadContract() {
     async function load() {
         await loadWeb3();
         window.contract = await loadContract();
-        printTotalSupply();
-        printTotalStaked();
-        printTotalRewards();
-        printStakeOf();
-        printRewardOf();
-        printCalculateReward();
-		printBalanceOf();
-		printRewardRate();
-		printRewardBlockTime();
-		printMinimumVoteAmount();
-		printVotingBlockEnd();
-		printYesVoteAmount();
-		printNoVoteAmount();
-		printNonburnVotingBlockEnd();
-		printNonburnNoVoteAmount();
-		printNonburnYesVoteAmount();
+        await printTotalSupply();
+        await printTotalStaked();
+        await printTotalRewards();
+        await printStakeOf();
+        await printRewardOf();
+        await printCalculateReward();
+	await printBalanceOf();
+	await printRewardRate();
+	await printRewardBlockTime();
+	await printMinimumVoteAmount();
+	await printVotingBlockEnd();
+	await printYesVoteAmount();
+	await printNoVoteAmount();
+	await printNonburnVotingBlockEnd();
+	await printNonburnNoVoteAmount();
+	await printNonburnYesVoteAmount();
+	await printConnectedAccount();
+	await printConnectedChain();
     }
 	async function printBalanceOf() {
         const accounts = await getCurrentAccount();
