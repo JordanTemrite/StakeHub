@@ -5,6 +5,32 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 <script>
+
+
+async function printConnectedAccount() {
+        const accounts = await getCurrentAccount();
+        updateConnectedAccount('Wallet Locked');
+        const connectedAccount = " with account " + await getCurrentAccount();
+        updateConnectedAccount(connectedAccount);
+    }
+    function updateConnectedAccount(connectedAccount) {
+        const connectedAccountEl = document.getElementById('connectedAccount');
+        connectedAccountEl.innerHTML = connectedAccount;
+        console.log(connectedAccount);
+    }
+    async function printConnectedChain() {
+        const chainId = await window.web3.eth.getChainId();
+        const chainData = evmChains.getChain(chainId).name;
+        updateConnectedChain('Wallet Locked');
+        const connectedChain = " Connected to " + chainData;
+        updateConnectedChain(connectedChain);
+    }
+    function updateConnectedChain(connectedChain) {
+        const connectedChainEl = document.getElementById('connectedChain');
+        connectedChainEl.innerHTML = connectedChain;
+        console.log(connectedChain);
+    }
+	
 async function loadWeb3() {
         if (window.ethereum) {
             window.web3 = new Web3(window.ethereum);
@@ -807,28 +833,27 @@ async function loadContract() {
     async function load() {
         await loadWeb3();
         window.contract = await loadContract();
-        printTotalSupply();
-        printTotalStaked();
-        printTotalRewards();
-        printStakeOf();
-        printCalculateReward();
-		printBalanceOf();
-		printRewardRate();
+        await printTotalSupply();
+        await printTotalStaked();
+        await printTotalRewards();
+        await printStakeOf();
+        await printCalculateReward();
+		await printBalanceOf();
+		await printRewardRate();
+		await printConnectedAccount();
+		await printConnectedChain();
     }
-
     async function printRewardRate() {
         updateRewardRate('Change to BSC');
         var nf = Intl.NumberFormat('en-US', {style: 'percent', maximumFractionDigits: 2});
         const rewardRate = await window.contract.methods.rewardRate().call();
         updateRewardRate(`${nf.format(((rewardRate * 2880)*365)/ 1e15)}`);
     }
-
     function updateRewardRate(rewardRate) {
         const rewardRateEl = document.getElementById('rewardRate');
         rewardRateEl.innerHTML = rewardRate;
         console.log(rewardRate);
     }
-
 	async function printBalanceOf() {
         const accounts = await getCurrentAccount();
         updateBalanceOf('Wallet Locked');
