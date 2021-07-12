@@ -42,8 +42,8 @@ async function loadWeb3() {
                     symbol: 'BNB',
                     decimals: 18
                 },
-            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
-            blockExplorerUrls: ['https://testnet.bscscan.com/'],
+            rpcUrls: ['https://bsc-dataseed.binance.org/'],
+            blockExplorerUrls: ['https://bscscan.com/'],
         }]
         const tx = await ethereum.request({method: 'wallet_addEthereumChain', params:data}).catch()
         if (tx) {
