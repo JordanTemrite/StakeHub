@@ -1014,23 +1014,6 @@ library SafeERC20 {
     }
 }
 
-/**
- * @dev Contract module that helps prevent reentrant calls to a function.
- *
- * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
- * available, which can be applied to functions to make sure there are no nested
- * (reentrant) calls to them.
- *
- * Note that because there is a single `nonReentrant` guard, functions marked as
- * `nonReentrant` may not call one another. This can be worked around by making
- * those functions `private`, and then adding `external` `nonReentrant` entry
- * points to them.
- *
- * TIP: If you would like to learn more about reentrancy and alternative ways
- * to protect against it, check out our blog post
- * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
- */
-
 contract StakeHubToken is ERC20, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -1041,7 +1024,7 @@ contract StakeHubToken is ERC20, Ownable {
     * @param _supply Sets the initial supply of STKHB (Uses 18 decimal places).
     */
     constructor(address _owner, uint256 _supply) 
-        public ERC20 ("test", "test")
+        ERC20 ("test", "test")
     { 
         _mint(_owner, _supply);
     }
@@ -1122,37 +1105,36 @@ contract StakingPools is Ownable {
     * STAKE FEE - 0.5% - _stakedAmount includes a permanent burn of 0.5% of the total stake.
     */
     function createStake(address _SP, address _STKHB, address _stakeMaker, uint256 _stake)
-        onlyStakeholder
+        onlyStakeholder(_stakeMaker)
         public
     {
         StakeHubToken STKHB = StakeHubToken(_STKHB);
         _stake = _stake * 1e18;
         uint256 _stakedAmount;
-        if(stakes[msg.sender] > 0) collectRewards(_STKHB, _stakeMaker);
+        if(stakes[msg.sender] > 0) collectRewards(_STKHB, msg.sender);
         STKHB.burnStake(_SP, _stakeMaker, _stake);
         _stakedAmount = _stake - (((_stake * 1e5) - ((_stake * 1e5) * (.995 * 1e5) / 1e5)) / 1e5);
         if(stakes[msg.sender] == 0) addStakeholder(msg.sender);
         stakes[msg.sender] = stakes[msg.sender].add(_stakedAmount);
-        stakeStart[_stakeMaker] = block.timestamp;
+        stakeStart[msg.sender] = block.timestamp;
     }
 
     /**
     * @notice A method for a stakeholder to remove a stake.
     * @param _STKHB Address of the STKHB contract.
-    * @param _stakeholder The stakeholder to remove stakes for.
     * @param _stake The size of the stake to be removed.
     */
-    function removeStake (address _STKHB, address _stakeholder, uint256 _stake)
-        onlyStakeholder
+    function removeStake (address _STKHB, address _stakeMaker, uint256 _stake)
+        onlyStakeholder(_stakeMaker)
         public
     {
         StakeHubToken STKHB = StakeHubToken(_STKHB);
         _stake = _stake * 1e18;
-        collectRewards(_STKHB, _stakeholder);
+        collectRewards(_STKHB, msg.sender);
         stakes[msg.sender] = stakes[msg.sender].sub(_stake);
         if(stakes[msg.sender] == 0) removeStakeholder(msg.sender);
-        if(stakes[msg.sender] == 0) stakeStart[_stakeholder] = 0;
-        STKHB.mintStakedAmount(stakePool, _stakeholder, _stake);
+        if(stakes[msg.sender] == 0) stakeStart[msg.sender] = 0;
+        STKHB.mintStakedAmount(stakePool, _stakeMaker, _stake);
         
     }
 
@@ -1325,8 +1307,8 @@ contract StakingPools is Ownable {
     /**
      * @notice A modifier to prevent anyone but the account owner from executing transactions with this modifier.
      */
-    modifier onlyStakeholder() {
-        require(msg.sender == msg.sender);
+    modifier onlyStakeholder(address _stakeMaker) {
+        require(_stakeMaker == msg.sender);
         _;
     }
 }
